@@ -493,22 +493,28 @@ export default function AdminPanel() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleEditUser(user)}
+                                  className="flex items-center gap-1"
                                 >
                                   <Edit className="h-4 w-4" />
+                                  <span className="hidden sm:inline">Edit</span>
                                 </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleToggleAdmin(user.id, user.isAdmin)}
+                                  className="flex items-center gap-1"
                                 >
                                   {user.isAdmin ? <UserMinus className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                                  <span className="hidden sm:inline">{user.isAdmin ? "Remove" : "Make"} Admin</span>
                                 </Button>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={() => handleDeleteUser(user.id)}
+                                  className="flex items-center gap-1"
                                 >
                                   <Trash2 className="h-4 w-4" />
+                                  <span className="hidden sm:inline">Delete</span>
                                 </Button>
                               </div>
                             </TableCell>
