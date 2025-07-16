@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NotificationDropdown } from './notification-dropdown';
-import { Search, Bot, LogOut, User, Settings, ChevronDown } from 'lucide-react';
+import { Search, Bot, LogOut, User, Settings, ChevronDown, Shield } from 'lucide-react';
 
 interface HeaderProps {
   onOpenChatbot?: () => void;
@@ -79,6 +79,23 @@ export function Header({ onOpenChatbot, searchQuery, onSearchChange }: HeaderPro
                     Community
                   </Button>
                 </Link>
+                {/* Admin Link - Only show for admin users */}
+                {user?.isAdmin && (
+                  <Link href="/admin">
+                    <Button 
+                      variant={location === '/admin' ? 'default' : 'ghost'}
+                      size="sm"
+                      className={`font-medium transition-all ${
+                        location === '/admin' 
+                          ? 'bg-primary text-primary-foreground shadow-md' 
+                          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                      }`}
+                    >
+                      <Shield className="h-4 w-4 mr-1" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
               </nav>
             )}
           </div>

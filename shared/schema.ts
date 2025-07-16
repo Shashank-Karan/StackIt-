@@ -36,6 +36,7 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url", { length: 500 }),
   firstName: varchar("first_name", { length: 255 }),
   lastName: varchar("last_name", { length: 255 }),
+  isAdmin: boolean("is_admin").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -116,6 +117,16 @@ export const postLikes = pgTable("post_likes", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const adminLogs = pgTable("admin_logs", {
+  id: serial("id").primaryKey(),
+  adminId: integer("admin_id").notNull().references(() => users.id),
+  action: varchar("action", { length: 255 }).notNull(),
+  targetType: varchar("target_type", { length: 50 }).notNull(),
+  targetId: integer("target_id"),
+  details: text("details"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   questions: many(questions),
@@ -125,6 +136,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts),
   postComments: many(postComments),
   postLikes: many(postLikes),
+  adminLogs: many(adminLogs),
 }));
 
 export const questionsRelations = relations(questions, ({ one, many }) => ({
@@ -213,6 +225,13 @@ export const postLikesRelations = relations(postLikes, ({ one }) => ({
   }),
 }));
 
+export const adminLogsRelations = relations(adminLogs, ({ one }) => ({
+  admin: one(users, {
+    fields: [adminLogs.adminId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -275,6 +294,11 @@ export const insertPostLikeSchema = createInsertSchema(postLikes).omit({
   createdAt: true,
 });
 
+export const insertAdminLogSchema = createInsertSchema(adminLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -294,6 +318,8 @@ export type PostComment = typeof postComments.$inferSelect;
 export type InsertPostComment = z.infer<typeof insertPostCommentSchema>;
 export type PostLike = typeof postLikes.$inferSelect;
 export type InsertPostLike = z.infer<typeof insertPostLikeSchema>;
+export type AdminLog = typeof adminLogs.$inferSelect;
+export type InsertAdminLog = z.infer<typeof insertAdminLogSchema>;
 
 // Extended types with relations
 export type QuestionWithAuthor = Question & {
@@ -325,4 +351,8 @@ export type PostWithAuthor = Post & {
 
 export type PostCommentWithAuthor = PostComment & {
   author: User;
+};
+
+export type AdminLogWithUser = AdminLog & {
+  admin: User;
 };

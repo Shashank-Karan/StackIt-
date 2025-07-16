@@ -7,6 +7,7 @@ import {
   posts,
   postComments,
   postLikes,
+  adminLogs,
   type User,
   type UpsertUser,
   type Question,
@@ -23,11 +24,14 @@ import {
   type InsertPostComment,
   type PostLike,
   type InsertPostLike,
+  type AdminLog,
+  type InsertAdminLog,
   type QuestionWithAuthor,
   type AnswerWithAuthor,
   type NotificationWithQuestion,
   type PostWithAuthor,
   type PostCommentWithAuthor,
+  type AdminLogWithUser,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, sql, and, or, ilike, count, inArray, isNull } from "drizzle-orm";
@@ -94,6 +98,40 @@ export interface IStorage {
   getPostComments(postId: number): Promise<PostCommentWithAuthor[]>;
   createPostComment(comment: InsertPostComment): Promise<PostComment>;
   deletePostComment(id: number): Promise<void>;
+
+  // Admin operations
+  getAllUsers(options?: {
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<User[]>;
+  updateUser(id: number, userData: Partial<UpsertUser>): Promise<User>;
+  deleteUser(id: number): Promise<void>;
+  makeUserAdmin(id: number): Promise<void>;
+  removeUserAdmin(id: number): Promise<void>;
+  
+  // Admin logs
+  getAdminLogs(options?: {
+    adminId?: number;
+    limit?: number;
+    offset?: number;
+  }): Promise<AdminLogWithUser[]>;
+  createAdminLog(log: InsertAdminLog): Promise<AdminLog>;
+  
+  // Analytics operations
+  getAnalytics(): Promise<{
+    totalUsers: number;
+    totalQuestions: number;
+    totalAnswers: number;
+    totalPosts: number;
+    totalVotes: number;
+    recentActivity: {
+      questions: number;
+      answers: number;
+      posts: number;
+      users: number;
+    };
+  }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -922,6 +960,169 @@ export class DatabaseStorage implements IStorage {
 
   async deletePostComment(id: number): Promise<void> {
     await db.delete(postComments).where(eq(postComments.id, id));
+  }
+
+  // Admin operations
+  async getAllUsers(options: {
+    search?: string;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<User[]> {
+    const { search, limit = 50, offset = 0 } = options;
+    
+    const query = db
+      .select()
+      .from(users)
+      .where(
+        search 
+          ? or(
+              ilike(users.name, `%${search}%`),
+              ilike(users.username, `%${search}%`),
+              ilike(users.email, `%${search}%`)
+            )
+          : undefined
+      )
+      .orderBy(desc(users.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return await query;
+  }
+
+  async updateUser(id: number, userData: Partial<UpsertUser>): Promise<User> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ ...userData, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  async deleteUser(id: number): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  async makeUserAdmin(id: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ isAdmin: true, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  }
+
+  async removeUserAdmin(id: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ isAdmin: false, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  }
+
+  async getAdminLogs(options: {
+    adminId?: number;
+    limit?: number;
+    offset?: number;
+  } = {}): Promise<AdminLogWithUser[]> {
+    const { adminId, limit = 50, offset = 0 } = options;
+
+    const results = await db
+      .select({
+        id: adminLogs.id,
+        adminId: adminLogs.adminId,
+        action: adminLogs.action,
+        targetType: adminLogs.targetType,
+        targetId: adminLogs.targetId,
+        details: adminLogs.details,
+        createdAt: adminLogs.createdAt,
+        adminName: users.name,
+        adminUsername: users.username,
+        adminEmail: users.email,
+      })
+      .from(adminLogs)
+      .leftJoin(users, eq(adminLogs.adminId, users.id))
+      .where(adminId ? eq(adminLogs.adminId, adminId) : undefined)
+      .orderBy(desc(adminLogs.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return results.map((row) => ({
+      id: row.id,
+      adminId: row.adminId,
+      action: row.action,
+      targetType: row.targetType,
+      targetId: row.targetId,
+      details: row.details,
+      createdAt: row.createdAt!,
+      admin: {
+        id: row.adminId,
+        name: row.adminName || 'Unknown Admin',
+        username: row.adminUsername || 'unknown',
+        email: row.adminEmail || '',
+        password: '',
+        profileImageUrl: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    }));
+  }
+
+  async createAdminLog(log: InsertAdminLog): Promise<AdminLog> {
+    const [newLog] = await db
+      .insert(adminLogs)
+      .values(log)
+      .returning();
+    return newLog;
+  }
+
+  async getAnalytics(): Promise<{
+    totalUsers: number;
+    totalQuestions: number;
+    totalAnswers: number;
+    totalPosts: number;
+    totalVotes: number;
+    recentActivity: {
+      questions: number;
+      answers: number;
+      posts: number;
+      users: number;
+    };
+  }> {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [
+      totalUsers,
+      totalQuestions,
+      totalAnswers,
+      totalPosts,
+      totalVotes,
+      recentQuestions,
+      recentAnswers,
+      recentPosts,
+      recentUsers,
+    ] = await Promise.all([
+      db.select({ count: count() }).from(users).then(r => r[0]?.count || 0),
+      db.select({ count: count() }).from(questions).then(r => r[0]?.count || 0),
+      db.select({ count: count() }).from(answers).then(r => r[0]?.count || 0),
+      db.select({ count: count() }).from(posts).then(r => r[0]?.count || 0),
+      db.select({ count: count() }).from(votes).then(r => r[0]?.count || 0),
+      db.select({ count: count() }).from(questions).where(sql`created_at >= ${thirtyDaysAgo}`).then(r => r[0]?.count || 0),
+      db.select({ count: count() }).from(answers).where(sql`created_at >= ${thirtyDaysAgo}`).then(r => r[0]?.count || 0),
+      db.select({ count: count() }).from(posts).where(sql`created_at >= ${thirtyDaysAgo}`).then(r => r[0]?.count || 0),
+      db.select({ count: count() }).from(users).where(sql`created_at >= ${thirtyDaysAgo}`).then(r => r[0]?.count || 0),
+    ]);
+
+    return {
+      totalUsers,
+      totalQuestions,
+      totalAnswers,
+      totalPosts,
+      totalVotes,
+      recentActivity: {
+        questions: recentQuestions,
+        answers: recentAnswers,
+        posts: recentPosts,
+        users: recentUsers,
+      },
+    };
   }
 }
 

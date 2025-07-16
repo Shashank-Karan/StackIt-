@@ -39,6 +39,22 @@ const upload = multer({
   }
 });
 
+// Admin middleware
+const isAdmin = async (req: any, res: any, next: any) => {
+  const user = req.session?.user;
+  if (!user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  
+  // Get fresh user data to check admin status
+  const currentUser = await storage.getUser(user.id);
+  if (!currentUser || !currentUser.isAdmin) {
+    return res.status(403).json({ message: "Access denied. Admin privileges required." });
+  }
+  
+  next();
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Serve uploaded files
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
@@ -703,6 +719,228 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send the specific error message from the generateAIResponse function
       const errorMessage = error.message || "Failed to generate AI response";
       res.status(500).json({ message: errorMessage });
+    }
+  });
+
+  // Admin routes
+  app.get('/api/admin/analytics', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const analytics = await storage.getAnalytics();
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  app.get('/api/admin/users', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { search, page = 1, limit = 50 } = req.query;
+      const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+      
+      const users = await storage.getAllUsers({
+        search: search as string,
+        limit: parseInt(limit as string),
+        offset,
+      });
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put('/api/admin/users/:id', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const currentUser = req.session?.user;
+      const updateData = req.body;
+      
+      // Prevent admin from removing their own admin status
+      if (userId === currentUser.id && updateData.isAdmin === false) {
+        return res.status(400).json({ message: "Cannot remove admin status from yourself" });
+      }
+      
+      const updatedUser = await storage.updateUser(userId, updateData);
+      
+      // Log admin action
+      await storage.createAdminLog({
+        adminId: currentUser.id,
+        action: 'update_user',
+        targetType: 'user',
+        targetId: userId,
+        details: `Updated user: ${JSON.stringify(updateData)}`,
+      });
+      
+      res.json({ ...updatedUser, password: undefined });
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete('/api/admin/users/:id', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const currentUser = req.session?.user;
+      
+      // Prevent admin from deleting themselves
+      if (userId === currentUser.id) {
+        return res.status(400).json({ message: "Cannot delete yourself" });
+      }
+      
+      await storage.deleteUser(userId);
+      
+      // Log admin action
+      await storage.createAdminLog({
+        adminId: currentUser.id,
+        action: 'delete_user',
+        targetType: 'user',
+        targetId: userId,
+        details: `Deleted user with ID: ${userId}`,
+      });
+      
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  app.post('/api/admin/users/:id/make-admin', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const currentUser = req.session?.user;
+      
+      await storage.makeUserAdmin(userId);
+      
+      // Log admin action
+      await storage.createAdminLog({
+        adminId: currentUser.id,
+        action: 'make_admin',
+        targetType: 'user',
+        targetId: userId,
+        details: `Granted admin privileges to user ID: ${userId}`,
+      });
+      
+      res.json({ message: "User granted admin privileges" });
+    } catch (error) {
+      console.error("Error making user admin:", error);
+      res.status(500).json({ message: "Failed to grant admin privileges" });
+    }
+  });
+
+  app.post('/api/admin/users/:id/remove-admin', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const currentUser = req.session?.user;
+      
+      // Prevent admin from removing their own admin status
+      if (userId === currentUser.id) {
+        return res.status(400).json({ message: "Cannot remove admin status from yourself" });
+      }
+      
+      await storage.removeUserAdmin(userId);
+      
+      // Log admin action
+      await storage.createAdminLog({
+        adminId: currentUser.id,
+        action: 'remove_admin',
+        targetType: 'user',
+        targetId: userId,
+        details: `Removed admin privileges from user ID: ${userId}`,
+      });
+      
+      res.json({ message: "Admin privileges removed from user" });
+    } catch (error) {
+      console.error("Error removing admin privileges:", error);
+      res.status(500).json({ message: "Failed to remove admin privileges" });
+    }
+  });
+
+  app.get('/api/admin/logs', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const { adminId, page = 1, limit = 50 } = req.query;
+      const offset = (parseInt(page as string) - 1) * parseInt(limit as string);
+      
+      const logs = await storage.getAdminLogs({
+        adminId: adminId ? parseInt(adminId as string) : undefined,
+        limit: parseInt(limit as string),
+        offset,
+      });
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching admin logs:", error);
+      res.status(500).json({ message: "Failed to fetch admin logs" });
+    }
+  });
+
+  app.delete('/api/admin/questions/:id', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const questionId = parseInt(req.params.id);
+      const currentUser = req.session?.user;
+      
+      await storage.deleteQuestion(questionId);
+      
+      // Log admin action
+      await storage.createAdminLog({
+        adminId: currentUser.id,
+        action: 'delete_question',
+        targetType: 'question',
+        targetId: questionId,
+        details: `Deleted question with ID: ${questionId}`,
+      });
+      
+      res.json({ message: "Question deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting question:", error);
+      res.status(500).json({ message: "Failed to delete question" });
+    }
+  });
+
+  app.delete('/api/admin/answers/:id', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const answerId = parseInt(req.params.id);
+      const currentUser = req.session?.user;
+      
+      await storage.deleteAnswer(answerId);
+      
+      // Log admin action
+      await storage.createAdminLog({
+        adminId: currentUser.id,
+        action: 'delete_answer',
+        targetType: 'answer',
+        targetId: answerId,
+        details: `Deleted answer with ID: ${answerId}`,
+      });
+      
+      res.json({ message: "Answer deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting answer:", error);
+      res.status(500).json({ message: "Failed to delete answer" });
+    }
+  });
+
+  app.delete('/api/admin/posts/:id', isAuthenticated, isAdmin, async (req: any, res) => {
+    try {
+      const postId = parseInt(req.params.id);
+      const currentUser = req.session?.user;
+      
+      await storage.deletePost(postId);
+      
+      // Log admin action
+      await storage.createAdminLog({
+        adminId: currentUser.id,
+        action: 'delete_post',
+        targetType: 'post',
+        targetId: postId,
+        details: `Deleted post with ID: ${postId}`,
+      });
+      
+      res.json({ message: "Post deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      res.status(500).json({ message: "Failed to delete post" });
     }
   });
 
