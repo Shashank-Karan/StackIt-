@@ -999,27 +999,32 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<void> {
-    // Use raw SQL for proper cascade deletion to handle complex foreign key relationships
-    await db.execute(sql`
-      -- First, delete all answers to questions by user ${id}
-      DELETE FROM answers WHERE question_id IN (SELECT id FROM questions WHERE author_id = ${id});
-      
-      -- Then delete all answers by user ${id}
-      DELETE FROM answers WHERE author_id = ${id};
-      
-      -- Then delete questions by user ${id}
-      DELETE FROM questions WHERE author_id = ${id};
-      
-      -- Delete other related data
-      DELETE FROM votes WHERE user_id = ${id};
-      DELETE FROM notifications WHERE user_id = ${id};
-      DELETE FROM post_likes WHERE user_id = ${id};
-      DELETE FROM post_comments WHERE author_id = ${id};
-      DELETE FROM posts WHERE author_id = ${id};
-      
-      -- Finally delete the user
-      DELETE FROM users WHERE id = ${id};
-    `);
+    // Execute deletion steps individually to handle complex foreign key relationships
+    
+    // First, get all question IDs by this user to handle answers to their questions
+    const userQuestions = await db.select({ id: questions.id }).from(questions).where(eq(questions.authorId, id));
+    const questionIds = userQuestions.map(q => q.id);
+    
+    // Delete all answers to questions by this user (answers by other users to this user's questions)
+    if (questionIds.length > 0) {
+      await db.delete(answers).where(inArray(answers.questionId, questionIds));
+    }
+    
+    // Delete all answers by this user (this user's answers to any questions)
+    await db.delete(answers).where(eq(answers.authorId, id));
+    
+    // Now delete questions by this user
+    await db.delete(questions).where(eq(questions.authorId, id));
+    
+    // Delete other related data
+    await db.delete(votes).where(eq(votes.userId, id));
+    await db.delete(notifications).where(eq(notifications.userId, id));
+    await db.delete(postLikes).where(eq(postLikes.userId, id));
+    await db.delete(postComments).where(eq(postComments.authorId, id));
+    await db.delete(posts).where(eq(posts.authorId, id));
+    
+    // Finally delete the user
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async makeUserAdmin(id: number): Promise<void> {
