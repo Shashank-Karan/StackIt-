@@ -999,36 +999,27 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(id: number): Promise<void> {
-    // First, delete all related data to avoid foreign key constraint violations
-    
-    // Delete post likes by this user
-    await db.delete(postLikes).where(eq(postLikes.userId, id));
-    
-    // Delete post comments by this user
-    await db.delete(postComments).where(eq(postComments.authorId, id));
-    
-    // Delete posts by this user
-    await db.delete(posts).where(eq(posts.authorId, id));
-    
-    // Delete notifications for this user or by this user
-    await db.delete(notifications).where(
-      or(
-        eq(notifications.userId, id),
-        eq(notifications.fromUserId, id)
-      )
-    );
-    
-    // Delete votes by this user
-    await db.delete(votes).where(eq(votes.userId, id));
-    
-    // Delete answers by this user
-    await db.delete(answers).where(eq(answers.authorId, id));
-    
-    // Delete questions by this user
-    await db.delete(questions).where(eq(questions.authorId, id));
-    
-    // Finally, delete the user
-    await db.delete(users).where(eq(users.id, id));
+    // Use raw SQL for proper cascade deletion to handle complex foreign key relationships
+    await db.execute(sql`
+      -- First, delete all answers to questions by user ${id}
+      DELETE FROM answers WHERE question_id IN (SELECT id FROM questions WHERE author_id = ${id});
+      
+      -- Then delete all answers by user ${id}
+      DELETE FROM answers WHERE author_id = ${id};
+      
+      -- Then delete questions by user ${id}
+      DELETE FROM questions WHERE author_id = ${id};
+      
+      -- Delete other related data
+      DELETE FROM votes WHERE user_id = ${id};
+      DELETE FROM notifications WHERE user_id = ${id};
+      DELETE FROM post_likes WHERE user_id = ${id};
+      DELETE FROM post_comments WHERE author_id = ${id};
+      DELETE FROM posts WHERE author_id = ${id};
+      
+      -- Finally delete the user
+      DELETE FROM users WHERE id = ${id};
+    `);
   }
 
   async makeUserAdmin(id: number): Promise<void> {
