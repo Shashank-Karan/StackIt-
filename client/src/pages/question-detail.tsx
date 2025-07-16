@@ -71,6 +71,22 @@ export default function QuestionDetail() {
     },
   });
 
+  const formatTimeAgo = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - new Date(date).getTime();
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+    if (minutes < 60) {
+      return `${minutes}m ago`;
+    } else if (hours < 24) {
+      return `${hours}h ago`;
+    } else {
+      return `${days}d ago`;
+    }
+  };
+
   const handleAnswerSuccess = () => {
     setShowAnswerForm(false);
     queryClient.invalidateQueries({ queryKey: [`/api/questions/${id}`] });
@@ -86,22 +102,6 @@ export default function QuestionDetail() {
       return;
     }
     setIsAskModalOpen(true);
-  };
-
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - new Date(date).getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 60) {
-      return `${minutes}m ago`;
-    } else if (hours < 24) {
-      return `${hours}h ago`;
-    } else {
-      return `${days}d ago`;
-    }
   };
 
   if (isLoading) {
@@ -179,9 +179,9 @@ export default function QuestionDetail() {
         </Button>
 
         {/* Question */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-8">
-          <div className="p-6">
-            <div className="flex items-start space-x-4">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200 mb-8 overflow-hidden">
+          <div className="p-8">
+            <div className="flex items-start space-x-6">
               {/* Voting Buttons */}
               <VotingButtons
                 itemType="question"
@@ -195,19 +195,23 @@ export default function QuestionDetail() {
 
               {/* Question Content */}
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-bold text-gray-900 mb-4">{question.title}</h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-6 leading-tight">{question.title}</h1>
                 
                 {/* Question Description */}
                 <div 
-                  className="prose max-w-none mb-6"
+                  className="prose prose-lg max-w-none mb-8 text-gray-700 leading-relaxed"
                   dangerouslySetInnerHTML={{ __html: question.description }}
                 />
 
                 {/* Tags */}
                 {question.tags && question.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-4">
+                  <div className="flex flex-wrap gap-3 mb-6">
                     {question.tags.map((tag, index) => (
-                      <Badge key={index} variant="secondary" className="text-sm">
+                      <Badge 
+                        key={index} 
+                        variant="secondary" 
+                        className="text-sm px-3 py-1.5 bg-gradient-to-r from-primary/10 to-purple-600/10 text-primary border border-primary/20 hover:bg-primary/20 transition-all"
+                      >
                         {tag}
                       </Badge>
                     ))}
@@ -215,31 +219,35 @@ export default function QuestionDetail() {
                 )}
 
                 {/* Question Stats */}
-                <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
-                  <div className="flex items-center space-x-1">
-                    <Eye className="h-4 w-4" />
-                    <span>{question.views || 0} views</span>
+                <div className="flex items-center space-x-6 text-sm text-gray-600 mb-6 bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-center space-x-2">
+                    <Eye className="h-4 w-4 text-blue-500" />
+                    <span className="font-medium">{question.views || 0}</span>
+                    <span className="text-gray-500">views</span>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <MessageCircle className="h-4 w-4" />
-                    <span>{question.answers?.length || 0} answers</span>
+                  <div className="flex items-center space-x-2">
+                    <MessageCircle className="h-4 w-4 text-green-500" />
+                    <span className="font-medium">{question.answers?.length || 0}</span>
+                    <span className="text-gray-500">answers</span>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <ThumbsUp className="h-4 w-4" />
-                    <span>{question.votes || 0} votes</span>
+                  <div className="flex items-center space-x-2">
+                    <ThumbsUp className="h-4 w-4 text-purple-500" />
+                    <span className="font-medium">{question.votes || 0}</span>
+                    <span className="text-gray-500">votes</span>
                   </div>
                 </div>
 
                 {/* Question Meta */}
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <div className="flex items-center space-x-2">
-                    <Avatar className="h-8 w-8">
+                <div className="flex items-center justify-between border-t border-gray-100 pt-4">
+                  <div className="flex items-center space-x-3">
+                    <Avatar className="h-10 w-10 ring-2 ring-primary/20">
                       <AvatarImage src={question.author.profileImageUrl} alt={authorName} />
-                      <AvatarFallback>{authorInitials}</AvatarFallback>
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white font-semibold">{authorInitials}</AvatarFallback>
                     </Avatar>
-                    <span className="font-medium">{authorName}</span>
-                    <span>•</span>
-                    <span>{formatTimeAgo(question.createdAt)}</span>
+                    <div>
+                      <div className="font-semibold text-gray-900">{authorName}</div>
+                      <div className="text-sm text-gray-500">{formatTimeAgo(question.createdAt)}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -248,7 +256,7 @@ export default function QuestionDetail() {
         </div>
 
         {/* Answers Section */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+        <div className="bg-white rounded-xl shadow-md border border-gray-200">
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-semibold text-gray-900">
