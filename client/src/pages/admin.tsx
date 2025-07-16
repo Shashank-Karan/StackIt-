@@ -10,6 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Skeleton } from '@/components/ui/skeleton';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 import { 
   Users, 
   BarChart3, 
@@ -71,25 +73,58 @@ export default function AdminPanel() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Fetch analytics
-  const { data: analytics } = useQuery<Analytics>({
+  // Auto-refresh data every 30 seconds for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/analytics'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/logs'] });
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [queryClient]);
+
+  // Manual refresh function
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/analytics'] }),
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] }),
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/logs'] })
+    ]);
+    setIsRefreshing(false);
+    toast({
+      title: "Data refreshed",
+      description: "All admin data has been updated",
+    });
+  };
+
+  // Fetch analytics with error handling
+  const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useQuery<Analytics>({
     queryKey: ['/api/admin/analytics'],
     queryFn: () => apiRequest('/api/admin/analytics'),
+    retry: 3,
+    refetchOnWindowFocus: true,
   });
 
-  // Fetch users
-  const { data: users, isLoading: usersLoading } = useQuery<User[]>({
+  // Fetch users with error handling
+  const { data: users, isLoading: usersLoading, error: usersError } = useQuery<User[]>({
     queryKey: ['/api/admin/users', searchQuery],
     queryFn: () => apiRequest(`/api/admin/users?search=${encodeURIComponent(searchQuery)}`),
+    retry: 3,
+    refetchOnWindowFocus: true,
   });
 
-  // Fetch admin logs
-  const { data: adminLogs } = useQuery<AdminLog[]>({
+  // Fetch admin logs with error handling
+  const { data: adminLogs, isLoading: logsLoading, error: logsError } = useQuery<AdminLog[]>({
     queryKey: ['/api/admin/logs'],
     queryFn: () => apiRequest('/api/admin/logs'),
+    retry: 3,
+    refetchOnWindowFocus: true,
   });
 
   // Update user mutation
@@ -190,11 +225,29 @@ export default function AdminPanel() {
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <Shield className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-              Admin Panel
-            </h1>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Shield className="h-8 w-8 text-primary" />
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+                Admin Panel
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
+                Real-time
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </div>
           <p className="text-muted-foreground">
             Manage users, monitor activity, and maintain the platform
@@ -223,6 +276,17 @@ export default function AdminPanel() {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="space-y-6">
+            {analyticsError && (
+              <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
+                <CardContent className="pt-6">
+                  <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>Failed to load analytics data. Please try refreshing.</span>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -230,10 +294,19 @@ export default function AdminPanel() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics?.totalUsers || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +{analytics?.recentActivity.users || 0} this month
-                  </p>
+                  {analyticsLoading ? (
+                    <>
+                      <Skeleton className="h-8 w-16 mb-2" />
+                      <Skeleton className="h-4 w-24" />
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{analytics?.totalUsers || 0}</div>
+                      <p className="text-xs text-muted-foreground">
+                        +{analytics?.recentActivity.users || 0} this month
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -243,10 +316,19 @@ export default function AdminPanel() {
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics?.totalQuestions || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +{analytics?.recentActivity.questions || 0} this month
-                  </p>
+                  {analyticsLoading ? (
+                    <>
+                      <Skeleton className="h-8 w-16 mb-2" />
+                      <Skeleton className="h-4 w-24" />
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{analytics?.totalQuestions || 0}</div>
+                      <p className="text-xs text-muted-foreground">
+                        +{analytics?.recentActivity.questions || 0} this month
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -256,10 +338,19 @@ export default function AdminPanel() {
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics?.totalAnswers || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +{analytics?.recentActivity.answers || 0} this month
-                  </p>
+                  {analyticsLoading ? (
+                    <>
+                      <Skeleton className="h-8 w-16 mb-2" />
+                      <Skeleton className="h-4 w-24" />
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{analytics?.totalAnswers || 0}</div>
+                      <p className="text-xs text-muted-foreground">
+                        +{analytics?.recentActivity.answers || 0} this month
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -269,10 +360,19 @@ export default function AdminPanel() {
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics?.totalPosts || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    +{analytics?.recentActivity.posts || 0} this month
-                  </p>
+                  {analyticsLoading ? (
+                    <>
+                      <Skeleton className="h-8 w-16 mb-2" />
+                      <Skeleton className="h-4 w-24" />
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{analytics?.totalPosts || 0}</div>
+                      <p className="text-xs text-muted-foreground">
+                        +{analytics?.recentActivity.posts || 0} this month
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -282,10 +382,19 @@ export default function AdminPanel() {
                   <BarChart3 className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{analytics?.totalVotes || 0}</div>
-                  <p className="text-xs text-muted-foreground">
-                    All time engagement
-                  </p>
+                  {analyticsLoading ? (
+                    <>
+                      <Skeleton className="h-8 w-16 mb-2" />
+                      <Skeleton className="h-4 w-24" />
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{analytics?.totalVotes || 0}</div>
+                      <p className="text-xs text-muted-foreground">
+                        All time engagement
+                      </p>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -316,6 +425,17 @@ export default function AdminPanel() {
                   </div>
                 </div>
 
+                {usersError && (
+                  <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950 mb-4">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>Failed to load users data. Please try refreshing.</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="border rounded-md">
                   <Table>
                     <TableHeader>
@@ -328,50 +448,80 @@ export default function AdminPanel() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {users?.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{user.name}</div>
-                              <div className="text-sm text-muted-foreground">@{user.username}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <Badge variant={user.isAdmin ? "default" : "secondary"}>
-                              {user.isAdmin ? "Admin" : "User"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(user.createdAt), 'MMM d, yyyy')}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditUser(user)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleToggleAdmin(user.id, user.isAdmin)}
-                              >
-                                {user.isAdmin ? <UserMinus className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDeleteUser(user.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
+                      {usersLoading ? (
+                        // Loading skeletons
+                        Array.from({ length: 5 }).map((_, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <div>
+                                <Skeleton className="h-4 w-32 mb-1" />
+                                <Skeleton className="h-3 w-24" />
+                              </div>
+                            </TableCell>
+                            <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-16" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Skeleton className="h-8 w-8" />
+                                <Skeleton className="h-8 w-8" />
+                                <Skeleton className="h-8 w-8" />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : users?.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            No users found
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        users?.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{user.name}</div>
+                                <div className="text-sm text-muted-foreground">@{user.username}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              <Badge variant={user.isAdmin ? "default" : "secondary"}>
+                                {user.isAdmin ? "Admin" : "User"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(user.createdAt), 'MMM d, yyyy')}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditUser(user)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleToggleAdmin(user.id, user.isAdmin)}
+                                >
+                                  {user.isAdmin ? <UserMinus className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteUser(user.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </div>
@@ -417,6 +567,17 @@ export default function AdminPanel() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {logsError && (
+                  <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950 mb-4">
+                    <CardContent className="pt-6">
+                      <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                        <AlertCircle className="h-4 w-4" />
+                        <span>Failed to load activity logs. Please try refreshing.</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 <div className="border rounded-md">
                   <Table>
                     <TableHeader>
@@ -429,32 +590,56 @@ export default function AdminPanel() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {adminLogs?.map((log) => (
-                        <TableRow key={log.id}>
-                          <TableCell>
-                            <div>
-                              <div className="font-medium">{log.admin.name}</div>
-                              <div className="text-sm text-muted-foreground">@{log.admin.username}</div>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{log.action}</Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {log.targetType} #{log.targetId}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <div className="max-w-xs truncate text-sm text-muted-foreground">
-                              {log.details}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(log.createdAt), 'MMM d, yyyy HH:mm')}
+                      {logsLoading ? (
+                        // Loading skeletons
+                        Array.from({ length: 5 }).map((_, index) => (
+                          <TableRow key={index}>
+                            <TableCell>
+                              <div>
+                                <Skeleton className="h-4 w-32 mb-1" />
+                                <Skeleton className="h-3 w-24" />
+                              </div>
+                            </TableCell>
+                            <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-28" /></TableCell>
+                          </TableRow>
+                        ))
+                      ) : adminLogs?.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            No activity logs found
                           </TableCell>
                         </TableRow>
-                      ))}
+                      ) : (
+                        adminLogs?.map((log) => (
+                          <TableRow key={log.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{log.admin.name}</div>
+                                <div className="text-sm text-muted-foreground">@{log.admin.username}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{log.action}</Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {log.targetType} #{log.targetId}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="max-w-xs truncate text-sm text-muted-foreground">
+                                {log.details}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(log.createdAt), 'MMM d, yyyy HH:mm')}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
                     </TableBody>
                   </Table>
                 </div>
