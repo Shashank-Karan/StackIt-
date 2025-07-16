@@ -108,7 +108,6 @@ export default function QuestionDetail() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header
-          onAskQuestion={handleAskQuestion}
           onOpenChatbot={() => setIsChatbotOpen(true)}
           searchQuery=""
           onSearchChange={() => {}}
@@ -129,7 +128,6 @@ export default function QuestionDetail() {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header
-          onAskQuestion={handleAskQuestion}
           onOpenChatbot={() => setIsChatbotOpen(true)}
           searchQuery=""
           onSearchChange={() => {}}
@@ -165,7 +163,6 @@ export default function QuestionDetail() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header
-        onAskQuestion={handleAskQuestion}
         onOpenChatbot={() => setIsChatbotOpen(!isChatbotOpen)}
         searchQuery=""
         onSearchChange={() => {}}

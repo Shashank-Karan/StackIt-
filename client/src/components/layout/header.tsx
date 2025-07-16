@@ -13,16 +13,15 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NotificationDropdown } from './notification-dropdown';
-import { Search, Plus, Bot, LogOut, User, Settings, ChevronDown } from 'lucide-react';
+import { Search, Bot, LogOut, User, Settings, ChevronDown } from 'lucide-react';
 
 interface HeaderProps {
-  onAskQuestion: () => void;
   onOpenChatbot?: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
 }
 
-export function Header({ onAskQuestion, onOpenChatbot, searchQuery, onSearchChange }: HeaderProps) {
+export function Header({ onOpenChatbot, searchQuery, onSearchChange }: HeaderProps) {
   const { user, isAuthenticated } = useAuth();
   const [location] = useLocation();
 
@@ -115,14 +114,7 @@ export function Header({ onAskQuestion, onOpenChatbot, searchQuery, onSearchChan
                   </Button>
                 )}
 
-                {/* Ask Question Button */}
-                <Button 
-                  onClick={onAskQuestion} 
-                  className="hidden sm:flex bg-gradient-to-r from-primary to-purple-600 hover:from-purple-600 hover:to-primary transition-all shadow-lg hover:shadow-xl hover:scale-105"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Ask Question
-                </Button>
+
 
                 {/* Notification Bell */}
                 <NotificationDropdown />
@@ -236,14 +228,7 @@ export function Header({ onAskQuestion, onOpenChatbot, searchQuery, onSearchChan
                   AI Assistant
                 </Button>
               )}
-              <Button 
-                onClick={onAskQuestion} 
-                size="sm"
-                className="flex-1 bg-gradient-to-r from-primary to-purple-600 hover:from-purple-600 hover:to-primary shadow-md"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Ask Question
-              </Button>
+
             </div>
           )}
         </div>

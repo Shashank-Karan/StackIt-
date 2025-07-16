@@ -64,7 +64,6 @@ export default function Community() {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        onAskQuestion={() => {}} // Not needed in community
         onOpenChatbot={() => setIsChatbotOpen(!isChatbotOpen)}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}

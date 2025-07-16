@@ -103,39 +103,84 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        onAskQuestion={handleAskQuestion}
         onOpenChatbot={() => setIsChatbotOpen(!isChatbotOpen)}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
 
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-primary via-purple-600 to-primary text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/90 via-purple-600/90 to-primary/90"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6">
+            Developer Community
+          </h1>
+          <p className="text-xl md:text-2xl mb-12 text-white/90 max-w-3xl mx-auto">
+            Ask questions, get answers, and learn from fellow developers worldwide
+          </p>
+          
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
+            <Button 
+              onClick={handleAskQuestion}
+              size="lg"
+              className="bg-white text-primary hover:bg-white/90 shadow-lg hover:shadow-xl transition-all font-semibold px-8 py-3 text-lg"
+            >
+              <Plus className="h-5 w-5 mr-2" />
+              Ask Your First Question
+            </Button>
+            
+            <div className="flex items-center gap-6 text-white/80">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">
+                  {questions.length}
+                </div>
+                <div className="text-sm">Questions</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-white">∞</div>
+                <div className="text-sm">Ideas</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <div className="flex">
         {/* Main Content */}
         <main className={`flex-1 px-4 sm:px-6 lg:px-8 py-8 transition-all duration-300 ${isAuthenticated && isChatbotOpen ? 'md:mr-96' : 'max-w-7xl mx-auto'}`}>
         <div className="space-y-8">
-          {/* Page Header */}
-          <div className="text-center space-y-4 py-8">
-            <h1 className="text-5xl font-bold bg-gradient-to-r from-primary via-purple-600 to-primary bg-clip-text text-transparent">
-              Questions
-            </h1>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Ask questions and get answers from our knowledgeable community
-            </p>
-            {questions.length > 0 && (
-              <div className="flex items-center justify-center space-x-4 pt-2">
-                <span className="text-sm text-muted-foreground">
-                  {questions.length} {questions.length === 1 ? 'question' : 'questions'} found
-                </span>
-                {debouncedSearch && (
-                  <span className="text-sm text-primary font-medium bg-primary/10 px-3 py-1 rounded-full">
-                    Results for "{debouncedSearch}"
-                  </span>
-                )}
-              </div>
-            )}
+          {/* Section Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-3xl font-bold text-foreground mb-2">Community Questions</h2>
+              <p className="text-muted-foreground">
+                Share your code, thoughts, and discoveries
+              </p>
+            </div>
+            <Button 
+              onClick={handleAskQuestion}
+              className="bg-gradient-to-r from-primary to-purple-600 hover:from-purple-600 hover:to-primary shadow-lg hover:shadow-xl transition-all"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ask Question
+            </Button>
           </div>
 
-          {/* Top Actions Bar */}
+          {/* Search Results Info */}
+          {questions.length > 0 && (
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-muted-foreground">
+                {questions.length} {questions.length === 1 ? 'question' : 'questions'} found
+              </span>
+              {debouncedSearch && (
+                <span className="text-sm text-primary font-medium bg-primary/10 px-3 py-1 rounded-full">
+                  Results for "{debouncedSearch}"
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* Filters */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-card p-4 rounded-xl border border-border/50 shadow-sm">
             <div className="flex items-center space-x-4">
               <Button 
@@ -147,7 +192,6 @@ export default function Home() {
               </Button>
             </div>
             
-            {/* Filters */}
             <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground mr-2">Filter:</span>
               <Button
