@@ -6,26 +6,19 @@ import { z } from 'zod';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from '@/components/ui/form';
 import { TiptapEditor } from '@/components/ui/tiptap-editor';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Separator } from '@/components/ui/separator';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { isUnauthorizedError } from '@/lib/authUtils';
-import { X, HelpCircle, Lightbulb, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
+import { X, HelpCircle, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { insertQuestionSchema } from '@shared/schema';
 
 const askQuestionSchema = insertQuestionSchema.extend({
   tagsInput: z.string().optional(),
-  category: z.string().optional(),
-  difficulty: z.enum(['beginner', 'intermediate', 'advanced']).optional(),
-  urgency: z.enum(['low', 'medium', 'high']).optional(),
 }).omit({
   authorId: true, // This will be added by the backend
 }).refine((data) => {
@@ -48,24 +41,7 @@ const POPULAR_TAGS = [
   'security', 'testing', 'mobile', 'web', 'backend', 'frontend'
 ];
 
-const QUESTION_CATEGORIES = [
-  { value: 'general', label: 'General Programming' },
-  { value: 'debugging', label: 'Debugging Help' },
-  { value: 'best-practices', label: 'Best Practices' },
-  { value: 'architecture', label: 'Architecture & Design' },
-  { value: 'performance', label: 'Performance Optimization' },
-  { value: 'tutorial', label: 'Tutorial Request' },
-  { value: 'tool-recommendation', label: 'Tool Recommendation' },
-  { value: 'career', label: 'Career Advice' },
-];
 
-const QUESTION_TIPS = [
-  "Be specific about what you're trying to accomplish",
-  "Include relevant code snippets or error messages",
-  "Mention what you've already tried",
-  "Add context about your environment (OS, language version, etc.)",
-  "Use clear, descriptive titles that others can find easily",
-];
 
 interface AskQuestionModalProps {
   isOpen: boolean;
@@ -76,7 +52,7 @@ export function AskQuestionModal({ isOpen, onClose }: AskQuestionModalProps) {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState('');
   const [showPreview, setShowPreview] = useState(false);
-  const [showTips, setShowTips] = useState(true);
+
   const [similarQuestions, setSimilarQuestions] = useState<any[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -88,9 +64,6 @@ export function AskQuestionModal({ isOpen, onClose }: AskQuestionModalProps) {
       description: '',
       tags: [],
       tagsInput: '',
-      category: '',
-      difficulty: 'beginner',
-      urgency: 'medium',
     },
   });
 
@@ -111,10 +84,9 @@ export function AskQuestionModal({ isOpen, onClose }: AskQuestionModalProps) {
   // Calculate completion percentage
   const formValues = form.watch();
   const completionPercentage = Math.round(
-    ((formValues.title ? 25 : 0) + 
-     (formValues.description ? 35 : 0) + 
-     (tags.length > 0 ? 25 : 0) + 
-     (formValues.category ? 15 : 0)) 
+    ((formValues.title ? 35 : 0) + 
+     (formValues.description ? 40 : 0) + 
+     (tags.length > 0 ? 25 : 0)) 
   );
 
   const createQuestionMutation = useMutation({
@@ -191,7 +163,6 @@ export function AskQuestionModal({ isOpen, onClose }: AskQuestionModalProps) {
     setTagInput('');
     setSimilarQuestions([]);
     setShowPreview(false);
-    setShowTips(true);
     onClose();
   };
 
@@ -226,9 +197,9 @@ export function AskQuestionModal({ isOpen, onClose }: AskQuestionModalProps) {
           </div>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 pt-6">
+        <div className="pt-6">
           {/* Main Form */}
-          <div className="lg:col-span-3">
+          <div>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
                 {/* Question Title */}
@@ -261,71 +232,7 @@ export function AskQuestionModal({ isOpen, onClose }: AskQuestionModalProps) {
                   )}
                 />
 
-                {/* Category and Difficulty */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel className="text-base font-medium">Category</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-11 bg-background/50 border-border/50 focus:bg-background focus:border-primary/50 transition-all rounded-lg">
-                              <SelectValue placeholder="Select a category" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {QUESTION_CATEGORIES.map((category) => (
-                              <SelectItem key={category.value} value={category.value}>
-                                {category.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
-                  <FormField
-                    control={form.control}
-                    name="difficulty"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel className="text-base font-medium">Difficulty Level</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-11 bg-background/50 border-border/50 focus:bg-background focus:border-primary/50 transition-all rounded-lg">
-                              <SelectValue placeholder="Select difficulty" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="beginner">
-                              <div className="flex items-center">
-                                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                                Beginner
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="intermediate">
-                              <div className="flex items-center">
-                                <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
-                                Intermediate
-                              </div>
-                            </SelectItem>
-                            <SelectItem value="advanced">
-                              <div className="flex items-center">
-                                <div className="w-2 h-2 bg-red-500 rounded-full mr-2"></div>
-                                Advanced
-                              </div>
-                            </SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
 
                 {/* Question Description */}
                 <FormField
@@ -472,96 +379,7 @@ export function AskQuestionModal({ isOpen, onClose }: AskQuestionModalProps) {
             </Form>
           </div>
 
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {/* Writing Tips */}
-            <Card className="bg-gradient-to-br from-background to-muted/20 border-border/50 shadow-lg">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold flex items-center text-foreground">
-                    <Lightbulb className="h-5 w-5 mr-2 text-yellow-500" />
-                    Writing Tips
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowTips(!showTips)}
-                    className="h-8 w-8 p-0 hover:bg-muted/50"
-                  >
-                    {showTips ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </Button>
-                </div>
-                {showTips && (
-                  <ul className="text-sm text-muted-foreground space-y-3">
-                    {QUESTION_TIPS.map((tip, index) => (
-                      <li key={index} className="flex items-start">
-                        <div className="w-2 h-2 bg-primary rounded-full mr-3 mt-2 flex-shrink-0"></div>
-                        <span className="leading-relaxed">{tip}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
 
-            {/* Question Quality */}
-            <Card className="bg-gradient-to-br from-background to-muted/20 border-border/50 shadow-lg">
-              <CardContent className="p-6">
-                <h3 className="font-semibold mb-4 flex items-center text-foreground">
-                  <CheckCircle className="h-5 w-5 mr-2 text-green-500" />
-                  Question Quality
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-muted/30">
-                    <span className="text-sm font-medium">Title</span>
-                    <div className={`flex items-center ${titleValue?.length >= 10 ? 'text-green-600' : 'text-red-500'}`}>
-                      <span className="text-xs mr-1">
-                        {titleValue?.length >= 10 ? 'Good' : 'Too short'}
-                      </span>
-                      {titleValue?.length >= 10 ? '✓' : '✗'}
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-muted/30">
-                    <span className="text-sm font-medium">Description</span>
-                    <div className={`flex items-center ${form.watch('description')?.length >= 20 ? 'text-green-600' : 'text-red-500'}`}>
-                      <span className="text-xs mr-1">
-                        {form.watch('description')?.length >= 20 ? 'Detailed' : 'Add more'}
-                      </span>
-                      {form.watch('description')?.length >= 20 ? '✓' : '✗'}
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-muted/30">
-                    <span className="text-sm font-medium">Tags</span>
-                    <div className={`flex items-center ${tags.length > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                      <span className="text-xs mr-1">
-                        {tags.length > 0 ? `${tags.length} tag${tags.length > 1 ? 's' : ''}` : 'Add tags'}
-                      </span>
-                      {tags.length > 0 ? '✓' : '✗'}
-                    </div>
-                  </div>
-                  <div className="flex justify-between items-center p-2 rounded-lg bg-muted/30">
-                    <span className="text-sm font-medium">Category</span>
-                    <div className={`flex items-center ${form.watch('category') ? 'text-green-600' : 'text-muted-foreground'}`}>
-                      <span className="text-xs mr-1">
-                        {form.watch('category') ? 'Selected' : 'Optional'}
-                      </span>
-                      {form.watch('category') ? '✓' : '○'}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 pt-3 border-t border-border/30">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-                      {completionPercentage}%
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Complete
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </DialogContent>
     </Dialog>
