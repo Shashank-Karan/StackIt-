@@ -72,7 +72,9 @@ export async function loginUser(credentials: LoginData): Promise<User | null> {
     return null;
   }
 
-  const isValidPassword = await verifyPassword(credentials.password, user.password);
+  // Check both password and passwordHash for backwards compatibility
+  const passwordToCheck = user.passwordHash || user.password;
+  const isValidPassword = await verifyPassword(credentials.password, passwordToCheck);
   if (!isValidPassword) {
     return null;
   }
