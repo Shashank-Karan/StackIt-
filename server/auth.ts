@@ -41,14 +41,14 @@ export async function registerUser(userData: RegisterData): Promise<User> {
   // Check if username already exists
   const existingUser = await storage.getUserByUsername(userData.username);
   if (existingUser) {
-    throw new Error('Username already exists');
+    throw new Error(`Username "${userData.username}" is already taken. Please choose a different username.`);
   }
 
   // Check if email already exists (if provided)
   if (userData.email) {
     const existingEmailUser = await storage.getUserByEmail(userData.email);
     if (existingEmailUser) {
-      throw new Error('Email already exists');
+      throw new Error(`Email "${userData.email}" is already registered. Please use a different email or try logging in.`);
     }
   }
 

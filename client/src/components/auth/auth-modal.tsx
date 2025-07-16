@@ -80,11 +80,23 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       onClose();
     },
     onError: (error: any) => {
+      const message = error.message || "Failed to register";
       toast({
-        title: "Error",
-        description: error.message || "Failed to register",
+        title: "Registration Failed",
+        description: message,
         variant: "destructive",
       });
+      
+      // Reset form if username/email already exists
+      if (message.includes("already taken") || message.includes("already registered")) {
+        if (message.includes("Username")) {
+          registerForm.setValue("username", "");
+          registerForm.setFocus("username");
+        } else if (message.includes("Email")) {
+          registerForm.setValue("email", "");
+          registerForm.setFocus("email");
+        }
+      }
     },
   });
 
@@ -177,12 +189,13 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <Input
                       id="register-username"
                       type="text"
-                      placeholder="Choose a username"
+                      placeholder="Choose a unique username"
                       {...registerForm.register("username")}
                     />
                     {registerForm.formState.errors.username && (
                       <p className="text-sm text-red-500">{registerForm.formState.errors.username.message}</p>
                     )}
+                    <p className="text-xs text-gray-500">Username must be unique and will be used to identify you</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="register-email">Email (optional)</Label>
