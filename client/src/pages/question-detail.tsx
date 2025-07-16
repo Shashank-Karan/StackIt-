@@ -146,13 +146,11 @@ export default function QuestionDetail() {
     );
   }
 
-  const authorName = question.author.firstName && question.author.lastName
-    ? `${question.author.firstName} ${question.author.lastName}`
-    : question.author.email || 'Anonymous';
+  const authorName = question.author.name || question.author.username || 'Anonymous';
 
-  const authorInitials = question.author.firstName && question.author.lastName
-    ? `${question.author.firstName[0]}${question.author.lastName[0]}`
-    : question.author.email?.[0].toUpperCase() || 'A';
+  const authorInitials = question.author.name 
+    ? question.author.name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
+    : question.author.username?.[0].toUpperCase() || 'A';
 
   const isQuestionAuthor = user?.id === question.authorId;
 
@@ -220,7 +218,7 @@ export default function QuestionDetail() {
                 <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
                   <div className="flex items-center space-x-1">
                     <Eye className="h-4 w-4" />
-                    <span>{question.viewCount} views</span>
+                    <span>{question.views || 0} views</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <MessageCircle className="h-4 w-4" />
@@ -228,7 +226,7 @@ export default function QuestionDetail() {
                   </div>
                   <div className="flex items-center space-x-1">
                     <ThumbsUp className="h-4 w-4" />
-                    <span>{question.voteScore} votes</span>
+                    <span>{question.votes || 0} votes</span>
                   </div>
                 </div>
 
@@ -276,13 +274,11 @@ export default function QuestionDetail() {
             {/* Answers List */}
             <div className="space-y-6">
               {question.answers?.map((answer: AnswerWithAuthor) => {
-                const answerAuthorName = answer.author.firstName && answer.author.lastName
-                  ? `${answer.author.firstName} ${answer.author.lastName}`
-                  : answer.author.email || 'Anonymous';
+                const answerAuthorName = answer.author.name || answer.author.username || 'Anonymous';
 
-                const answerAuthorInitials = answer.author.firstName && answer.author.lastName
-                  ? `${answer.author.firstName[0]}${answer.author.lastName[0]}`
-                  : answer.author.email?.[0].toUpperCase() || 'A';
+                const answerAuthorInitials = answer.author.name 
+                  ? answer.author.name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
+                  : answer.author.username?.[0].toUpperCase() || 'A';
 
                 return (
                   <div key={answer.id} className="border-b border-gray-200 last:border-b-0 pb-6 last:pb-0">

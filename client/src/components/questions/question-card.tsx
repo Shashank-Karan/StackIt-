@@ -10,13 +10,11 @@ interface QuestionCardProps {
 }
 
 export function QuestionCard({ question, onClick }: QuestionCardProps) {
-  const authorName = question.author.firstName && question.author.lastName
-    ? `${question.author.firstName} ${question.author.lastName}`
-    : question.author.email || 'Anonymous';
+  const authorName = question.author.name || question.author.username || 'Anonymous';
 
-  const authorInitials = question.author.firstName && question.author.lastName
-    ? `${question.author.firstName[0]}${question.author.lastName[0]}`
-    : question.author.email?.[0].toUpperCase() || 'A';
+  const authorInitials = question.author.name 
+    ? question.author.name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
+    : question.author.username?.[0].toUpperCase() || 'A';
 
   const formatTimeAgo = (date: Date) => {
     const now = new Date();
@@ -62,7 +60,7 @@ export function QuestionCard({ question, onClick }: QuestionCardProps) {
             <div className="text-center">
               <div className="flex items-center space-x-1 text-sm text-gray-600">
                 <Eye className="h-4 w-4" />
-                <span className="font-medium">{question.viewCount || 0}</span>
+                <span className="font-medium">{question.views || 0}</span>
               </div>
               <div className="text-xs text-gray-500">views</div>
             </div>
