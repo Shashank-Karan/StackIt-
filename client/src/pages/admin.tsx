@@ -106,15 +106,13 @@ export default function AdminPanel() {
   // Fetch analytics with error handling
   const { data: analytics, isLoading: analyticsLoading, error: analyticsError } = useQuery<Analytics>({
     queryKey: ['/api/admin/analytics'],
-    queryFn: () => apiRequest('/api/admin/analytics'),
     retry: 3,
     refetchOnWindowFocus: true,
   });
 
   // Fetch users with error handling
   const { data: users, isLoading: usersLoading, error: usersError } = useQuery<User[]>({
-    queryKey: ['/api/admin/users', searchQuery],
-    queryFn: () => apiRequest(`/api/admin/users?search=${encodeURIComponent(searchQuery)}`),
+    queryKey: ['/api/admin/users', { search: searchQuery }],
     retry: 3,
     refetchOnWindowFocus: true,
   });
@@ -122,7 +120,6 @@ export default function AdminPanel() {
   // Fetch admin logs with error handling
   const { data: adminLogs, isLoading: logsLoading, error: logsError } = useQuery<AdminLog[]>({
     queryKey: ['/api/admin/logs'],
-    queryFn: () => apiRequest('/api/admin/logs'),
     retry: 3,
     refetchOnWindowFocus: true,
   });
@@ -130,10 +127,8 @@ export default function AdminPanel() {
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ userId, userData }: { userId: number; userData: Partial<User> }) => {
-      return await apiRequest(`/api/admin/users/${userId}`, {
-        method: 'PUT',
-        body: JSON.stringify(userData),
-      });
+      const res = await apiRequest('PUT', `/api/admin/users/${userId}`, userData);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -152,9 +147,8 @@ export default function AdminPanel() {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: number) => {
-      return await apiRequest(`/api/admin/users/${userId}`, {
-        method: 'DELETE',
-      });
+      const res = await apiRequest('DELETE', `/api/admin/users/${userId}`);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -173,9 +167,8 @@ export default function AdminPanel() {
   const toggleAdminMutation = useMutation({
     mutationFn: async ({ userId, isAdmin }: { userId: number; isAdmin: boolean }) => {
       const endpoint = isAdmin ? 'make-admin' : 'remove-admin';
-      return await apiRequest(`/api/admin/users/${userId}/${endpoint}`, {
-        method: 'POST',
-      });
+      const res = await apiRequest('POST', `/api/admin/users/${userId}/${endpoint}`);
+      return await res.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
