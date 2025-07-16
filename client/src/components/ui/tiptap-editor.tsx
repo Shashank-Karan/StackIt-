@@ -101,7 +101,7 @@ export function TiptapEditor({ content, onUpdate, placeholder, className }: Tipt
       }),
       CodeBlock.configure({
         HTMLAttributes: {
-          class: 'bg-muted/50 dark:bg-muted border border-border/50 rounded-lg p-4 my-4 overflow-x-auto font-mono text-sm text-foreground',
+          class: 'code-block-container',
           spellcheck: 'false',
         },
       }),
@@ -115,7 +115,7 @@ export function TiptapEditor({ content, onUpdate, placeholder, className }: Tipt
       Underline,
       Code.configure({
         HTMLAttributes: {
-          class: 'bg-muted/70 dark:bg-muted/50 px-2 py-1 rounded text-sm font-mono text-foreground border border-border/30',
+          class: 'inline-code',
           spellcheck: 'false',
         },
       }),
