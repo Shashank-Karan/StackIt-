@@ -435,11 +435,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       const { limit } = req.query;
       
+      console.log(`[API] Fetching notifications for user:`, user);
+      console.log(`[API] User ID type: ${typeof user.id}, value: ${user.id}`);
+      
       const notifications = await storage.getNotifications(
         user.id,
         limit ? parseInt(limit as string) : undefined
       );
 
+      console.log(`[API] Found ${notifications.length} notifications for user ${user.id}`);
       res.json(notifications);
     } catch (error) {
       console.error("Error fetching notifications:", error);
@@ -768,7 +772,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adminId: currentUser.id,
         action: 'update_user',
         targetType: 'user',
-        targetId: userId,
+        targetId: userId.toString(),
         details: `Updated user: ${JSON.stringify(updateData)}`,
       });
       
@@ -796,7 +800,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adminId: currentUser.id,
         action: 'delete_user',
         targetType: 'user',
-        targetId: userId,
+        targetId: userId.toString(),
         details: `Deleted user with ID: ${userId}`,
       });
       
@@ -819,7 +823,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adminId: currentUser.id,
         action: 'make_admin',
         targetType: 'user',
-        targetId: userId,
+        targetId: userId.toString(),
         details: `Granted admin privileges to user ID: ${userId}`,
       });
       
@@ -847,7 +851,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adminId: currentUser.id,
         action: 'remove_admin',
         targetType: 'user',
-        targetId: userId,
+        targetId: userId.toString(),
         details: `Removed admin privileges from user ID: ${userId}`,
       });
       
@@ -887,7 +891,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adminId: currentUser.id,
         action: 'delete_question',
         targetType: 'question',
-        targetId: questionId,
+        targetId: questionId.toString(),
         details: `Deleted question with ID: ${questionId}`,
       });
       
@@ -910,7 +914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adminId: currentUser.id,
         action: 'delete_answer',
         targetType: 'answer',
-        targetId: answerId,
+        targetId: answerId.toString(),
         details: `Deleted answer with ID: ${answerId}`,
       });
       
@@ -933,7 +937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         adminId: currentUser.id,
         action: 'delete_post',
         targetType: 'post',
-        targetId: postId,
+        targetId: postId.toString(),
         details: `Deleted post with ID: ${postId}`,
       });
       

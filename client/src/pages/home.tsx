@@ -51,7 +51,7 @@ export default function Home() {
     data: questions = [], 
     isLoading, 
     error 
-  } = useQuery({
+  } = useQuery<QuestionWithAuthor[]>({
     queryKey: ['/api/questions', {
       search: debouncedSearch || undefined,
       filter: filter || undefined,

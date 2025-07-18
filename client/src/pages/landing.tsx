@@ -23,13 +23,6 @@ export default function Landing() {
             </div>
             <div className="flex items-center space-x-4">
               <Button 
-                variant="outline"
-                onClick={() => setShowAuthModal(true)}
-                className="border-primary/30 text-primary hover:bg-primary/10 transition-all"
-              >
-                Sign In
-              </Button>
-              <Button 
                 onClick={() => setShowAuthModal(true)}
                 className="bg-gradient-to-r from-primary to-purple-600 hover:from-purple-600 hover:to-primary transition-all shadow-lg hover:shadow-xl hover:scale-105 px-6"
               >
@@ -67,8 +60,7 @@ export default function Landing() {
             </h1>
             
             <p className="mt-6 max-w-3xl mx-auto text-xl text-muted-foreground leading-relaxed">
-              Join our vibrant community of developers powered by AI. Share knowledge, solve complex problems, 
-              and accelerate your learning with intelligent assistance and peer collaboration.
+               join our vibrant community of developers powered by AI. Share knowledge, solve complex problems, and accelerate your learning with intelligent assistance and peer collaboration.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
@@ -319,7 +311,7 @@ export default function Landing() {
               Empowering developers worldwide with AI-assisted knowledge sharing
             </p>
             <p className="text-sm text-slate-500">
-              &copy; 2025 StackIt. Built with ❤️ for the developer community.
+              &copy; 2025 StackIt.
             </p>
           </div>
         </div>

@@ -198,7 +198,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <p className="text-xs text-gray-500">Username must be unique and will be used to identify you</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-email">Email (optional)</Label>
+                    <Label htmlFor="register-email">Email</Label>
                     <Input
                       id="register-email"
                       type="email"

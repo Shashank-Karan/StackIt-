@@ -14,7 +14,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Session storage table.
-// (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+// Used for user session management
 export const sessions = pgTable(
   "sessions",
   {
@@ -122,7 +122,7 @@ export const adminLogs = pgTable("admin_logs", {
   adminId: integer("admin_id").notNull().references(() => users.id),
   action: varchar("action", { length: 255 }).notNull(),
   targetType: varchar("target_type", { length: 50 }).notNull(),
-  targetId: integer("target_id"),
+  targetId: text("target_id"),
   details: text("details"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -256,7 +256,7 @@ export const insertQuestionSchema = createInsertSchema(questions).omit({
   createdAt: true,
   updatedAt: true,
   votes: true,
-  viewCount: true,
+  views: true,
   acceptedAnswerId: true,
 });
 export const insertAnswerSchema = createInsertSchema(answers).omit({
@@ -339,7 +339,7 @@ export type NotificationWithQuestion = Notification & {
   answer?: Answer;
 };
 
-export type PostWithAuthor = Post & {
+export type PostWithAuthor = Omit<Post, 'likes'> & {
   author: User;
   comments: (PostComment & { author: User })[];
   likes: PostLike[];

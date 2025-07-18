@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { NotificationDropdown } from './notification-dropdown';
+import { safeString } from '@/lib/utils';
 import { Search, Bot, LogOut, User, Settings, ChevronDown, Shield } from 'lucide-react';
 
 interface HeaderProps {
@@ -142,7 +143,7 @@ export function Header({ onOpenChatbot, searchQuery, onSearchChange }: HeaderPro
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="flex items-center space-x-3 p-2 hover:bg-muted/50 transition-all rounded-xl">
                         <Avatar className="h-10 w-10 ring-2 ring-primary/20 hover:ring-primary/40 transition-all">
-                          <AvatarImage src={user?.profileImageUrl} alt={displayName} />
+                          <AvatarImage src={safeString(user?.profileImageUrl)} alt={displayName} />
                           <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white font-semibold">
                             {initials}
                           </AvatarFallback>

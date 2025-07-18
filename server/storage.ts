@@ -32,7 +32,7 @@ import {
   type PostWithAuthor,
   type PostCommentWithAuthor,
   type AdminLogWithUser,
-} from "@shared/schema";
+} from "../shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, sql, and, or, ilike, count, inArray, isNull } from "drizzle-orm";
 
@@ -264,7 +264,7 @@ export class DatabaseStorage implements IStorage {
         .groupBy(answers.questionId) : [];
 
       // Transform to expected format
-      const result: QuestionWithAuthor[] = questionsData.map(q => ({
+      const result = questionsData.map(q => ({
         id: q.id,
         title: q.title,
         description: q.description,
@@ -291,7 +291,7 @@ export class DatabaseStorage implements IStorage {
         },
       }));
 
-      return result;
+      return result as unknown as QuestionWithAuthor[];
     } catch (error) {
       console.error('Error in getQuestions:', error);
       return [];
@@ -359,9 +359,13 @@ export class DatabaseStorage implements IStorage {
           id: question.authorId,
           name: question.authorName || 'Unknown',
           username: question.authorUsername || 'unknown',
-          profileImageUrl: question.authorProfileImageUrl,
-          email: null,
           password: '',
+          passwordHash: null,
+          email: null,
+          profileImageUrl: question.authorProfileImageUrl,
+          firstName: null,
+          lastName: null,
+          isAdmin: false,
           createdAt: new Date(),
           updatedAt: new Date(),
         },
@@ -381,6 +385,10 @@ export class DatabaseStorage implements IStorage {
             profileImageUrl: a.authorProfileImageUrl,
             email: null,
             password: '',
+            passwordHash: null,
+            firstName: null,
+            lastName: null,
+            isAdmin: false,
             createdAt: new Date(),
             updatedAt: new Date(),
           },
@@ -398,7 +406,7 @@ export class DatabaseStorage implements IStorage {
   async createQuestion(question: InsertQuestion): Promise<Question> {
     const [newQuestion] = await db
       .insert(questions)
-      .values(question)
+      .values(question as any)
       .returning();
     return newQuestion;
   }
@@ -460,6 +468,10 @@ export class DatabaseStorage implements IStorage {
         profileImageUrl: row.authorProfileImageUrl,
         email: null,
         password: '',
+        passwordHash: null,
+        firstName: null,
+        lastName: null,
+        isAdmin: false,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
@@ -608,6 +620,8 @@ export class DatabaseStorage implements IStorage {
 
   // Notification operations
   async getNotifications(userId: number, limit = 20): Promise<NotificationWithQuestion[]> {
+    console.log(`[Storage] getNotifications called for userId: ${userId}`);
+    
     const results = await db
       .select({
         id: notifications.id,
@@ -626,6 +640,9 @@ export class DatabaseStorage implements IStorage {
       .where(eq(notifications.userId, userId))
       .orderBy(desc(notifications.createdAt))
       .limit(limit);
+
+    console.log(`[Storage] Found ${results.length} raw notifications for userId: ${userId}`);
+    console.log(`[Storage] Raw results:`, results);
 
     return results.map((row) => ({
       id: row.id,
@@ -739,6 +756,7 @@ export class DatabaseStorage implements IStorage {
           .select({
             id: postLikes.id,
             userId: postLikes.userId,
+            postId: postLikes.postId,
             createdAt: postLikes.createdAt,
           })
           .from(postLikes)
@@ -751,7 +769,6 @@ export class DatabaseStorage implements IStorage {
           codeSnippet: row.codeSnippet,
           language: row.language,
           authorId: row.authorId,
-          likes: row.likes || 0,
           shares: row.shares || 0,
           tags: row.tags || [],
           imageUrls: row.imageUrls || [],
@@ -764,12 +781,16 @@ export class DatabaseStorage implements IStorage {
             email: row.authorEmail || '',
             username: row.authorUsername || 'unknown',
             password: '',
+            passwordHash: null,
+            firstName: null,
+            lastName: null,
+            isAdmin: false,
             profileImageUrl: null,
             createdAt: new Date(),
             updatedAt: new Date(),
           },
           comments,
-          likes,
+          likes: likes,
           _count: {
             comments: comments.length,
             likes: likes.length,
@@ -815,6 +836,7 @@ export class DatabaseStorage implements IStorage {
       .select({
         id: postLikes.id,
         userId: postLikes.userId,
+        postId: postLikes.postId,
         createdAt: postLikes.createdAt,
       })
       .from(postLikes)
@@ -827,7 +849,6 @@ export class DatabaseStorage implements IStorage {
       codeSnippet: row.codeSnippet,
       language: row.language,
       authorId: row.authorId,
-      likes: row.likes || 0,
       shares: row.shares || 0,
       tags: row.tags || [],
       imageUrls: row.imageUrls || [],
@@ -840,6 +861,10 @@ export class DatabaseStorage implements IStorage {
         email: row.authorEmail || '',
         username: row.authorUsername || 'unknown',
         password: '',
+        passwordHash: null,
+        firstName: null,
+        lastName: null,
+        isAdmin: false,
         profileImageUrl: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -943,6 +968,10 @@ export class DatabaseStorage implements IStorage {
         email: row.authorEmail || '',
         username: row.authorUsername || 'unknown',
         password: '',
+        passwordHash: null,
+        firstName: null,
+        lastName: null,
+        isAdmin: false,
         profileImageUrl: null,
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -1082,6 +1111,10 @@ export class DatabaseStorage implements IStorage {
         username: row.adminUsername || 'unknown',
         email: row.adminEmail || '',
         password: '',
+        passwordHash: null,
+        firstName: null,
+        lastName: null,
+        isAdmin: false,
         profileImageUrl: null,
         createdAt: new Date(),
         updatedAt: new Date(),

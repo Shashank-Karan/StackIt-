@@ -11,6 +11,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { isUnauthorizedError } from '@/lib/authUtils';
+import { formatTimeAgo, safeString } from '@/lib/utils';
 import { Check, Eye, MessageCircle, ThumbsUp } from 'lucide-react';
 import type { QuestionWithAuthor, AnswerWithAuthor } from '@shared/schema';
 
@@ -68,22 +69,6 @@ export function QuestionModal({ question, isOpen, onClose }: QuestionModalProps)
     ? `${question.author.firstName[0]}${question.author.lastName[0]}`
     : question.author.email?.[0].toUpperCase() || 'A';
 
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - new Date(date).getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 60) {
-      return `${minutes}m ago`;
-    } else if (hours < 24) {
-      return `${hours}h ago`;
-    } else {
-      return `${days}d ago`;
-    }
-  };
-
   const isQuestionAuthor = user?.id === question.authorId;
 
   const handleAcceptAnswer = (answerId: number) => {
@@ -130,7 +115,7 @@ export function QuestionModal({ question, isOpen, onClose }: QuestionModalProps)
                   </div>
                   <div className="flex items-center space-x-1">
                     <Eye className="h-4 w-4" />
-                    <span>{question.viewCount || 0} views</span>
+                    <span>{question.views || 0} views</span>
                   </div>
                 </div>
 
@@ -153,7 +138,7 @@ export function QuestionModal({ question, isOpen, onClose }: QuestionModalProps)
                 <div className="flex items-center justify-between text-sm text-gray-500">
                   <div className="flex items-center space-x-2">
                     <Avatar className="h-8 w-8">
-                      <AvatarImage src={question.author.profileImageUrl} alt={authorName} />
+                      <AvatarImage src={safeString(question.author.profileImageUrl)} alt={authorName} />
                       <AvatarFallback>{authorInitials}</AvatarFallback>
                     </Avatar>
                     <span className="font-medium">{authorName}</span>
@@ -251,7 +236,7 @@ export function QuestionModal({ question, isOpen, onClose }: QuestionModalProps)
                         <div className="flex items-center justify-between text-sm text-gray-500">
                           <div className="flex items-center space-x-2">
                             <Avatar className="h-6 w-6">
-                              <AvatarImage src={answer.author.profileImageUrl} alt={answerAuthorName} />
+                              <AvatarImage src={safeString(answer.author.profileImageUrl)} alt={answerAuthorName} />
                               <AvatarFallback className="text-xs">{answerAuthorInitials}</AvatarFallback>
                             </Avatar>
                             <span className="font-medium">{answerAuthorName}</span>

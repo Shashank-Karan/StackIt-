@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatTimeAgo, safeString } from '@/lib/utils';
 import { MessageCircle, ThumbsUp, Eye } from 'lucide-react';
 import type { QuestionWithAuthor } from '@shared/schema';
 
@@ -15,22 +16,6 @@ export function QuestionCard({ question, onClick }: QuestionCardProps) {
   const authorInitials = question.author.name 
     ? question.author.name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2)
     : question.author.username?.[0].toUpperCase() || 'A';
-
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - new Date(date).getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 60) {
-      return `${minutes}m ago`;
-    } else if (hours < 24) {
-      return `${hours}h ago`;
-    } else {
-      return `${days}d ago`;
-    }
-  };
 
   const truncateText = (text: string, maxLength: number) => {
     if (text.length <= maxLength) return text;
@@ -92,7 +77,7 @@ export function QuestionCard({ question, onClick }: QuestionCardProps) {
             <div className="flex items-center justify-between text-sm text-gray-500">
               <div className="flex items-center space-x-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage src={question.author.profileImageUrl} alt={authorName} />
+                  <AvatarImage src={safeString(question.author.profileImageUrl)} alt={authorName} />
                   <AvatarFallback className="text-xs">{authorInitials}</AvatarFallback>
                 </Avatar>
                 <span className="font-medium">{authorName}</span>

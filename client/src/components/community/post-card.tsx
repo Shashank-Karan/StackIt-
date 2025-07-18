@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { formatTimeAgo } from '@/lib/utils';
 import { Heart, MessageCircle, Share, Copy } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { queryClient } from '@/lib/queryClient';
@@ -50,10 +51,6 @@ export function PostCard({ post }: PostCardProps) {
         description: "Code snippet copied to clipboard",
       });
     }
-  };
-
-  const formatTimeAgo = (date: Date | string) => {
-    return formatDistanceToNow(new Date(date), { addSuffix: true });
   };
 
   const getInitials = (name: string) => {

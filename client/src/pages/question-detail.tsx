@@ -15,6 +15,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { isUnauthorizedError } from '@/lib/authUtils';
+import { formatTimeAgo, safeString } from '@/lib/utils';
 import type { QuestionWithAuthor, AnswerWithAuthor } from '@shared/schema';
 
 export default function QuestionDetail() {
@@ -32,7 +33,7 @@ export default function QuestionDetail() {
     data: question, 
     isLoading, 
     error 
-  } = useQuery({
+  } = useQuery<QuestionWithAuthor>({
     queryKey: [`/api/questions/${id}`],
     enabled: !!id,
     retry: false,
@@ -70,22 +71,6 @@ export default function QuestionDetail() {
       });
     },
   });
-
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - new Date(date).getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 60) {
-      return `${minutes}m ago`;
-    } else if (hours < 24) {
-      return `${hours}h ago`;
-    } else {
-      return `${days}d ago`;
-    }
-  };
 
   const handleAnswerSuccess = () => {
     setShowAnswerForm(false);
@@ -241,7 +226,7 @@ export default function QuestionDetail() {
                 <div className="flex items-center justify-between border-t border-gray-100 pt-4">
                   <div className="flex items-center space-x-3">
                     <Avatar className="h-10 w-10 ring-2 ring-primary/20">
-                      <AvatarImage src={question.author.profileImageUrl} alt={authorName} />
+                      <AvatarImage src={safeString(question.author.profileImageUrl)} alt={authorName} />
                       <AvatarFallback className="bg-gradient-to-br from-primary to-purple-600 text-white font-semibold">{authorInitials}</AvatarFallback>
                     </Avatar>
                     <div>
@@ -313,7 +298,7 @@ export default function QuestionDetail() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-2">
                             <Avatar className="h-6 w-6">
-                              <AvatarImage src={answer.author.profileImageUrl} alt={answerAuthorName} />
+                              <AvatarImage src={safeString(answer.author.profileImageUrl)} alt={answerAuthorName} />
                               <AvatarFallback className="text-xs">{answerAuthorInitials}</AvatarFallback>
                             </Avatar>
                             <span className="font-medium text-sm text-gray-700">{answerAuthorName}</span>

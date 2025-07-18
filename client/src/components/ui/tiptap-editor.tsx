@@ -37,7 +37,7 @@ import {
   Upload,
   Eye,
   EyeOff,
-  Separator
+  Minus as Separator
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import TurndownService from 'turndown';

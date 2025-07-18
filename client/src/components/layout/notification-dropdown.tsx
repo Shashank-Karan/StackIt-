@@ -8,6 +8,7 @@ import { Bell, MessageCircle, Check, User } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { isUnauthorizedError } from '@/lib/authUtils';
+import { formatTimeAgo } from '@/lib/utils';
 import type { NotificationWithQuestion } from '@shared/schema';
 
 export function NotificationDropdown() {
@@ -16,13 +17,13 @@ export function NotificationDropdown() {
   const queryClient = useQueryClient();
 
   // Fetch notifications
-  const { data: notifications = [], isLoading } = useQuery({
+  const { data: notifications = [], isLoading } = useQuery<NotificationWithQuestion[]>({
     queryKey: ['/api/notifications'],
     retry: false,
   });
 
   // Fetch unread count
-  const { data: unreadData, isLoading: isLoadingCount } = useQuery({
+  const { data: unreadData, isLoading: isLoadingCount } = useQuery<{ count: number }>({
     queryKey: ['/api/notifications/unread-count'],
     retry: false,
   });
@@ -108,22 +109,6 @@ export function NotificationDropdown() {
         return <User className="h-4 w-4 text-purple-500" />;
       default:
         return <Bell className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diff = now.getTime() - new Date(date).getTime();
-    const minutes = Math.floor(diff / (1000 * 60));
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-
-    if (minutes < 60) {
-      return `${minutes}m ago`;
-    } else if (hours < 24) {
-      return `${hours}h ago`;
-    } else {
-      return `${days}d ago`;
     }
   };
 

@@ -20,7 +20,7 @@ export default function Community() {
   const { isAuthenticated } = useAuth();
   const { toast } = useToast();
 
-  const { data: posts, isLoading } = useQuery({
+  const { data: posts, isLoading } = useQuery<PostWithAuthor[]>({
     queryKey: ['/api/posts', { search: searchQuery }],
     enabled: isAuthenticated,
   });

@@ -23,12 +23,12 @@ const askQuestionSchema = insertQuestionSchema.extend({
   tagsInput: z.string().optional(),
 }).omit({
   authorId: true, // This will be added by the backend
-}).refine((data) => {
+}).refine((data: any) => {
   return data.title.length >= 10;
 }, {
   message: "Title must be at least 10 characters long",
   path: ["title"],
-}).refine((data) => {
+}).refine((data: any) => {
   return data.description.length >= 20;
 }, {
   message: "Description must be at least 20 characters long",
